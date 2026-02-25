@@ -24,21 +24,29 @@ class TestIndexRoute:
 
 
 class TestMarketsApi:
-    @patch("polypulse.web._run_polypulse")
-    def test_returns_suggestions(self, mock_run, client):
-        mock_run.return_value = {
-            "suggestions": [
-                {"slug": "m1", "question": "Q?", "price": 0.5, "volume_24h": 1000, "signal": "BUY"}
-            ]
-        }
+    @patch("polypulse.web.fetch_active_markets")
+    @patch("polypulse.web.load_config")
+    def test_returns_markets(self, mock_config, mock_fetch, client):
+        from polypulse.polymarket import Market
+        mock_config.return_value = {"top_n_markets": 10, "filter_patterns": []}
+        mock_fetch.return_value = [
+            Market(id="1", slug="m1", question="Q?", description="",
+                   outcomes=["Yes", "No"], outcome_prices=[0.5, 0.5],
+                   volume=1000, volume_24h=500, liquidity=100,
+                   active=True, end_date="2025-12-31", one_day_price_change=0.02,
+                   event_slug="evt1"),
+        ]
         resp = client.get("/api/markets")
         assert resp.status_code == 200
         data = json.loads(resp.data)
-        assert len(data["suggestions"]) == 1
-        assert data["suggestions"][0]["slug"] == "m1"
+        assert len(data["markets"]) >= 1
+        assert data["markets"][0]["slug"] == "m1"
+        assert "exponent" in data
 
-    @patch("polypulse.web._run_polypulse", side_effect=RuntimeError("CLI failed"))
-    def test_error_returns_500(self, mock_run, client):
+    @patch("polypulse.web.fetch_active_markets", side_effect=RuntimeError("CLI failed"))
+    @patch("polypulse.web.load_config")
+    def test_error_returns_500(self, mock_config, mock_fetch, client):
+        mock_config.return_value = {"top_n_markets": 10, "filter_patterns": []}
         resp = client.get("/api/markets")
         assert resp.status_code == 500
         data = json.loads(resp.data)

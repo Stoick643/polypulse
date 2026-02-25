@@ -63,10 +63,15 @@
     let marketsData = [];
     let refreshTimer = null;
 
-    // --- Color mapping ---
-    function tileColor(signal, price) {
-        if (signal === 'BUY') return '#16a34a';
-        return '#ca8a04';
+    // --- Color mapping by price change ---
+    function tileColor(market) {
+        if (market.signal === 'OTHER') return '#3b82f6';
+        const change = market.one_day_change || 0;
+        if (change > 0.05) return '#22c55e';
+        if (change > 0.01) return '#16a34a';
+        if (change > -0.01) return '#ca8a04';
+        if (change > -0.05) return '#dc2626';
+        return '#ef4444';
     }
 
     // --- Treemap layout (squarified) ---
@@ -135,17 +140,7 @@
         return rects;
     }
 
-    // --- Power scaling (same algorithm as Python backend) ---
-    function powerScale(values, targetRatio = 7) {
-        if (values.length <= 1) return values;
-        const hi = Math.max(...values);
-        const lo = Math.min(...values.filter(v => v > 0));
-        if (!lo || hi / lo <= targetRatio) return values;
-        const ratio = hi / lo;
-        const p = Math.log(targetRatio) / Math.log(ratio);
-        const exp = Math.max(p, 0.1);
-        return values.map(v => Math.pow(Math.max(v, 0.001), exp));
-    }
+    // --- Scaling: use pre-computed scaled_volume from backend ---
 
     // --- Format helpers ---
     function fmtVol(v) {
@@ -155,7 +150,7 @@
     }
 
     // --- Render treemap ---
-    function renderTreemap(suggestions) {
+    function renderTreemap(markets) {
         const container = document.getElementById('treemap');
         const searchResults = document.getElementById('search-results');
         searchResults.classList.remove('open');
@@ -163,14 +158,12 @@
         container.innerHTML = '';
         const rect = container.getBoundingClientRect();
         const W = rect.width, H = rect.height;
-        if (!suggestions.length || W === 0 || H === 0) return;
+        if (!markets.length || W === 0 || H === 0) return;
 
-        const rawValues = suggestions.map(s => s.volume_24h || 0.001);
-        const scaled = powerScale(rawValues);
-        const items = suggestions.map((s, i) => ({...s, value: scaled[i]}));
+        const items = markets.map((m, i) => ({...m, value: m.scaled_volume || m.volume_24h || 0.001}));
         const layout = layoutTreemap(items, {x: 0, y: 0, w: W, h: H});
 
-        suggestions.forEach((s, i) => {
+        markets.forEach((m, i) => {
             const r = layout[i];
             if (!r || r.w < 2 || r.h < 2) return;
             const div = document.createElement('div');
@@ -179,15 +172,16 @@
             div.style.top = r.y + 'px';
             div.style.width = r.w + 'px';
             div.style.height = r.h + 'px';
-            div.style.background = tileColor(s.signal, s.price);
+            div.style.background = tileColor(m);
 
-            const q = s.question || s.slug;
+            const q = m.question || m.slug;
+            const change = m.one_day_change || 0;
+            const changeStr = (change >= 0 ? '+' : '') + (change * 100).toFixed(1) + '%';
             div.innerHTML = `
                 <div class="question">${q}</div>
-                <div class="stats">${s.price != null ? s.price.toFixed(3) : '?'} · ${fmtVol(s.volume_24h || 0)}</div>
-                <div class="signal">${s.signal}</div>
+                <div class="stats">${m.price != null ? m.price.toFixed(3) : ''} · ${fmtVol(m.volume_24h || 0)} · ${changeStr}</div>
             `;
-            div.onclick = () => showDetail(s);
+            if (m.slug !== '_others') div.onclick = () => showDetail(m);
             container.appendChild(div);
         });
     }
@@ -273,9 +267,11 @@
         fetch('/api/markets')
             .then(r => r.json())
             .then(data => {
-                marketsData = data.suggestions || [];
+                marketsData = data.markets || [];
+                const p = data.exponent;
                 renderTreemap(marketsData);
-                document.getElementById('status').textContent = `${marketsData.length} markets · ${new Date().toLocaleTimeString()}`;
+                const scaleInfo = p === 1.0 ? 'raw' : `p=${p}`;
+                document.getElementById('status').textContent = `${marketsData.length} markets (${scaleInfo}) · ${new Date().toLocaleTimeString()}`;
             })
             .catch(err => {
                 document.getElementById('status').textContent = 'Error: ' + err.message;
