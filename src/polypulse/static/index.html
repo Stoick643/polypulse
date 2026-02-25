@@ -7,37 +7,97 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
-        header { padding: 12px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+
+        /* Layout */
+        .main { display: flex; flex-direction: column; height: 100vh; }
+        header { padding: 10px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
         header h1 { font-size: 1.2rem; color: #a78bfa; }
         header .status { font-size: 0.85rem; color: #94a3b8; }
+
+        /* Tabs */
+        .tabs { display: flex; background: #1e293b; border-bottom: 1px solid #334155; }
+        .tab { padding: 8px 20px; cursor: pointer; color: #94a3b8; font-size: 0.85rem; border-bottom: 2px solid transparent; }
+        .tab:hover { color: #e2e8f0; }
+        .tab.active { color: #a78bfa; border-bottom-color: #a78bfa; }
+
+        /* Search */
         #search-bar { padding: 8px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; gap: 8px; }
         #search-bar input { flex: 1; padding: 6px 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 0.9rem; }
         #search-bar button { padding: 6px 16px; border-radius: 6px; border: none; background: #7c3aed; color: white; cursor: pointer; font-size: 0.9rem; }
         #search-bar button:hover { background: #6d28d9; }
+
+        /* Content panels */
+        .panel { display: none; flex: 1; overflow: hidden; position: relative; }
+        .panel.active { display: flex; flex-direction: column; }
         #treemap { flex: 1; position: relative; overflow: hidden; }
+
+        /* Treemap tiles */
         .tile { position: absolute; overflow: hidden; border: 1px solid #1e293b; cursor: pointer; display: flex; flex-direction: column; justify-content: center; padding: 8px 12px; transition: opacity 0.2s; }
         .tile:hover { opacity: 0.85; }
         .tile .question { font-size: 0.85rem; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .tile .stats { font-size: 0.75rem; margin-top: 4px; opacity: 0.9; }
-        .tile .signal { font-size: 0.7rem; font-weight: 700; margin-top: 2px; }
         .tile.small .question { -webkit-line-clamp: 1; font-size: 0.75rem; }
         .tile.small .stats { font-size: 0.65rem; }
-        #detail { display: none; position: fixed; top: 0; right: 0; width: 360px; height: 100vh; background: #1e293b; border-left: 1px solid #334155; padding: 20px; overflow-y: auto; z-index: 10; }
+
+        /* Detail panel */
+        #detail { display: none; position: fixed; top: 0; right: 0; width: 400px; height: 100vh; background: #1e293b; border-left: 1px solid #334155; padding: 20px; overflow-y: auto; z-index: 10; box-shadow: -4px 0 20px rgba(0,0,0,0.3); }
         #detail.open { display: block; }
         #detail .close { float: right; cursor: pointer; font-size: 1.2rem; color: #94a3b8; background: none; border: none; }
         #detail h2 { font-size: 1rem; color: #a78bfa; margin-bottom: 12px; padding-right: 24px; }
         #detail .field { margin-bottom: 10px; }
         #detail .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
         #detail .value { font-size: 0.95rem; }
-        #detail .vibe { margin-top: 16px; padding: 12px; background: #0f172a; border-radius: 8px; }
-        #detail .vibe .loading { color: #94a3b8; font-style: italic; }
-        .main { display: flex; flex-direction: column; height: 100vh; }
-        #search-results { display: none; padding: 16px; overflow-y: auto; flex: 1; }
-        #search-results.open { display: block; }
-        #search-results table { width: 100%; border-collapse: collapse; }
-        #search-results th { text-align: left; padding: 8px; color: #94a3b8; border-bottom: 1px solid #334155; font-size: 0.8rem; }
-        #search-results td { padding: 8px; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
-        #search-results .back { cursor: pointer; color: #a78bfa; margin-bottom: 12px; display: inline-block; font-size: 0.85rem; }
+        #detail .actions { margin-top: 12px; }
+        #detail .actions button { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; margin-right: 6px; }
+        .btn-watch { background: #7c3aed; color: white; }
+        .btn-watch:hover { background: #6d28d9; }
+        .btn-unwatch { background: #475569; color: white; }
+        .btn-unwatch:hover { background: #64748b; }
+
+        /* Chart bars */
+        .chart { margin-top: 16px; }
+        .chart .bar-row { display: flex; align-items: center; margin-bottom: 4px; font-size: 0.8rem; }
+        .chart .bar-label { width: 30px; color: #94a3b8; }
+        .chart .bar-track { flex: 1; height: 18px; background: #334155; border-radius: 3px; position: relative; overflow: hidden; }
+        .chart .bar-fill { height: 100%; border-radius: 3px; position: absolute; display: flex; align-items: center; padding-left: 4px; font-size: 0.7rem; color: white; }
+        .chart .bar-fill.pos { background: #16a34a; left: 50%; }
+        .chart .bar-fill.neg { background: #dc2626; right: 50%; direction: rtl; }
+        .chart .bar-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #64748b; }
+
+        /* Vibe section */
+        .vibe { margin-top: 16px; padding: 12px; background: #0f172a; border-radius: 8px; }
+        .vibe .loading { color: #94a3b8; font-style: italic; }
+
+        /* Scrollable panels */
+        .scroll-panel { flex: 1; overflow-y: auto; padding: 16px; }
+
+        /* Tables */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { text-align: left; padding: 10px; color: #94a3b8; border-bottom: 1px solid #334155; font-size: 0.8rem; }
+        .data-table td { padding: 10px; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
+        .data-table tr:hover { background: #1e293b; }
+
+        /* Watch list */
+        .watch-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #1e293b; cursor: pointer; }
+        .watch-item:hover { background: #1e293b; }
+        .watch-item .info { flex: 1; }
+        .watch-item .name { font-size: 0.9rem; font-weight: 500; }
+        .watch-item .meta { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+        .watch-item .remove { color: #ef4444; cursor: pointer; font-size: 0.85rem; padding: 4px 8px; border: 1px solid #ef4444; border-radius: 4px; background: none; }
+        .watch-item .remove:hover { background: #ef4444; color: white; }
+
+        /* Alerts */
+        .alert-item { padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
+        .alert-item .time { font-size: 0.75rem; color: #64748b; }
+        .alert-item .move { font-weight: 600; }
+        .alert-item .move.up { color: #22c55e; }
+        .alert-item .move.down { color: #ef4444; }
+
+        /* Empty state */
+        .empty { color: #64748b; text-align: center; padding: 40px; font-size: 0.9rem; }
+
+        /* Search results */
+        .back-link { cursor: pointer; color: #a78bfa; margin-bottom: 12px; display: inline-block; font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -46,14 +106,40 @@
             <h1>📊 PolyPulse</h1>
             <div class="status" id="status">Loading...</div>
         </header>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('heatmap')">Heatmap</div>
+            <div class="tab" onclick="switchTab('watchlist')">Watch List</div>
+            <div class="tab" onclick="switchTab('portfolio')">Portfolio</div>
+            <div class="tab" onclick="switchTab('alerts')">Alerts</div>
+        </div>
         <div id="search-bar">
             <input type="text" id="search-input" placeholder="Search markets..." />
             <button onclick="doSearch()">Search</button>
         </div>
-        <div id="treemap"></div>
-        <div id="search-results"></div>
+
+        <!-- Heatmap panel -->
+        <div id="panel-heatmap" class="panel active">
+            <div id="treemap"></div>
+            <div id="search-results" class="scroll-panel" style="display:none;"></div>
+        </div>
+
+        <!-- Watch list panel -->
+        <div id="panel-watchlist" class="panel">
+            <div class="scroll-panel" id="watchlist-content"></div>
+        </div>
+
+        <!-- Portfolio panel -->
+        <div id="panel-portfolio" class="panel">
+            <div class="scroll-panel" id="portfolio-content"></div>
+        </div>
+
+        <!-- Alerts panel -->
+        <div id="panel-alerts" class="panel">
+            <div class="scroll-panel" id="alerts-content"></div>
+        </div>
     </div>
 
+    <!-- Detail side panel -->
     <div id="detail">
         <button class="close" onclick="closeDetail()">✕</button>
         <div id="detail-content"></div>
@@ -61,9 +147,26 @@
 
     <script>
     let marketsData = [];
-    let refreshTimer = null;
+    let watchedSlugs = new Set();
 
-    // --- Color mapping by price change ---
+    // ===== Tabs =====
+    function switchTab(name) {
+        document.querySelectorAll('.tab').forEach((t, i) => {
+            t.classList.toggle('active', t.textContent.toLowerCase().replace(' ', '') === name.replace(' ', ''));
+        });
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + name).classList.add('active');
+
+        if (name === 'watchlist') loadWatchlist();
+        if (name === 'portfolio') loadPortfolio();
+        if (name === 'alerts') loadAlerts();
+        if (name === 'heatmap') {
+            document.getElementById('search-results').style.display = 'none';
+            document.getElementById('treemap').style.display = 'block';
+        }
+    }
+
+    // ===== Color mapping =====
     function tileColor(market) {
         if (market.signal === 'OTHER') return '#3b82f6';
         const change = market.one_day_change || 0;
@@ -74,7 +177,15 @@
         return '#ef4444';
     }
 
-    // --- Treemap layout (squarified) ---
+    // ===== Format helpers =====
+    function fmtVol(v) {
+        if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+        if (v >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+        return '$' + v.toFixed(0);
+    }
+    function fmtPct(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%'; }
+
+    // ===== Treemap layout =====
     function layoutTreemap(values, bounds) {
         if (!values.length || bounds.w <= 0 || bounds.h <= 0) return values.map(() => ({x:0,y:0,w:0,h:0}));
         const total = values.reduce((s, v) => s + v.value, 0) || 1;
@@ -89,7 +200,6 @@
         if (!items.length) return [];
         if (items.length === 1) return [{...items[0], x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h}];
         if (bounds.w <= 0 || bounds.h <= 0) return items.map(it => ({...it, x: bounds.x, y: bounds.y, w: 0, h: 0}));
-
         let bestSplit = 1, bestWorst = Infinity;
         for (let split = 1; split <= items.length; split++) {
             const row = items.slice(0, split);
@@ -103,35 +213,28 @@
                 const itemFrac = v.value / rowSum;
                 const iw = isWide ? stripW : Math.max(1, Math.round(stripW * itemFrac));
                 const ih = isWide ? Math.max(1, Math.round(stripH * itemFrac)) : stripH;
-                const aspect = Math.max(iw / ih, ih / iw);
-                worst = Math.max(worst, aspect);
+                worst = Math.max(worst, Math.max(iw / ih, ih / iw));
             }
             if (worst <= bestWorst) { bestWorst = worst; bestSplit = split; } else break;
         }
-
-        const row = items.slice(0, bestSplit);
-        const rest = items.slice(bestSplit);
+        const row = items.slice(0, bestSplit), rest = items.slice(bestSplit);
         const rowSum = row.reduce((s, r) => s + r.value, 0);
-        const frac = rowSum / total;
         const isWide = bounds.w >= bounds.h;
         const rects = [];
-
         if (isWide) {
-            const stripW = Math.max(1, Math.round(bounds.w * frac));
+            const stripW = Math.max(1, Math.round(bounds.w * (rowSum / total)));
             let cy = bounds.y;
             row.forEach((v, i) => {
-                const itemFrac = v.value / rowSum;
-                const ih = (i === row.length - 1) ? (bounds.y + bounds.h - cy) : Math.max(1, Math.round(bounds.h * itemFrac));
+                const ih = (i === row.length - 1) ? (bounds.y + bounds.h - cy) : Math.max(1, Math.round(bounds.h * (v.value / rowSum)));
                 rects.push({...v, x: bounds.x, y: cy, w: stripW, h: ih});
                 cy += ih;
             });
             if (rest.length) rects.push(...squarify(rest, total - rowSum, {x: bounds.x + stripW, y: bounds.y, w: bounds.w - stripW, h: bounds.h}));
         } else {
-            const stripH = Math.max(1, Math.round(bounds.h * frac));
+            const stripH = Math.max(1, Math.round(bounds.h * (rowSum / total)));
             let cx = bounds.x;
             row.forEach((v, i) => {
-                const itemFrac = v.value / rowSum;
-                const iw = (i === row.length - 1) ? (bounds.x + bounds.w - cx) : Math.max(1, Math.round(bounds.w * itemFrac));
+                const iw = (i === row.length - 1) ? (bounds.x + bounds.w - cx) : Math.max(1, Math.round(bounds.w * (v.value / rowSum)));
                 rects.push({...v, x: cx, y: bounds.y, w: iw, h: stripH});
                 cx += iw;
             });
@@ -140,92 +243,213 @@
         return rects;
     }
 
-    // --- Scaling: use pre-computed scaled_volume from backend ---
-
-    // --- Format helpers ---
-    function fmtVol(v) {
-        if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
-        if (v >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
-        return '$' + v.toFixed(0);
-    }
-
-    // --- Render treemap ---
+    // ===== Render treemap =====
     function renderTreemap(markets) {
         const container = document.getElementById('treemap');
-        const searchResults = document.getElementById('search-results');
-        searchResults.classList.remove('open');
+        document.getElementById('search-results').style.display = 'none';
         container.style.display = 'block';
         container.innerHTML = '';
         const rect = container.getBoundingClientRect();
         const W = rect.width, H = rect.height;
         if (!markets.length || W === 0 || H === 0) return;
-
         const items = markets.map((m, i) => ({...m, value: m.scaled_volume || m.volume_24h || 0.001}));
         const layout = layoutTreemap(items, {x: 0, y: 0, w: W, h: H});
-
         markets.forEach((m, i) => {
             const r = layout[i];
             if (!r || r.w < 2 || r.h < 2) return;
             const div = document.createElement('div');
             div.className = 'tile' + (r.w < 150 || r.h < 60 ? ' small' : '');
-            div.style.left = r.x + 'px';
-            div.style.top = r.y + 'px';
-            div.style.width = r.w + 'px';
-            div.style.height = r.h + 'px';
-            div.style.background = tileColor(m);
-
+            div.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${tileColor(m)};`;
             const q = m.question || m.slug;
-            const change = m.one_day_change || 0;
-            const changeStr = (change >= 0 ? '+' : '') + (change * 100).toFixed(1) + '%';
             div.innerHTML = `
                 <div class="question">${q}</div>
-                <div class="stats">${m.price != null ? m.price.toFixed(3) : ''} · ${fmtVol(m.volume_24h || 0)} · ${changeStr}</div>
+                <div class="stats">${m.price != null ? m.price.toFixed(3) : ''} · ${fmtVol(m.volume_24h || 0)} · ${fmtPct(m.one_day_change || 0)}</div>
             `;
-            if (m.slug !== '_others') div.onclick = () => showDetail(m);
+            if (m.slug !== '_others') div.onclick = () => showDetail(m.slug);
             container.appendChild(div);
         });
     }
 
-    // --- Detail panel ---
-    function showDetail(market) {
+    // ===== Detail panel =====
+    function showDetail(slug) {
         const panel = document.getElementById('detail');
         const content = document.getElementById('detail-content');
         panel.classList.add('open');
-        content.innerHTML = `
-            <h2>${market.question || market.slug}</h2>
-            <div class="field"><div class="label">Slug</div><div class="value">${market.slug}</div></div>
-            <div class="field"><div class="label">Price</div><div class="value">${market.price != null ? market.price.toFixed(3) : '?'}</div></div>
-            <div class="field"><div class="label">24h Volume</div><div class="value">${fmtVol(market.volume_24h || 0)}</div></div>
-            <div class="field"><div class="label">Signal</div><div class="value">${market.signal}</div></div>
-            <div class="vibe"><div class="loading">Loading vibe check...</div></div>
-        `;
-        fetch('/api/vibe/' + encodeURIComponent(market.slug))
+        content.innerHTML = '<p style="color:#94a3b8">Loading...</p>';
+
+        fetch('/api/detail/' + encodeURIComponent(slug))
             .then(r => r.json())
             .then(data => {
-                const emoji = {bullish: '🟢', bearish: '🔴', neutral: '🟡'}[data.sentiment] || '❓';
-                content.querySelector('.vibe').innerHTML = `
-                    <div class="label">Vibe Check</div>
-                    <div class="value">${emoji} <strong>${(data.sentiment || '?').toUpperCase()}</strong></div>
-                    <div class="value" style="margin-top:6px">${data.summary || ''}</div>
+                if (data.error) { content.innerHTML = `<p style="color:#ef4444">${data.error}</p>`; return; }
+                const isWatched = watchedSlugs.has(slug);
+                const pc = data.price_changes || {};
+                content.innerHTML = `
+                    <h2>${data.question || slug}</h2>
+                    <div class="field"><div class="label">Slug</div><div class="value">${data.slug}</div></div>
+                    <div class="field"><div class="label">Price</div><div class="value">${data.price != null ? data.price.toFixed(3) : '?'}</div></div>
+                    <div class="field"><div class="label">24h Volume</div><div class="value">${fmtVol(data.volume_24h || 0)}</div></div>
+                    <div class="field"><div class="label">Liquidity</div><div class="value">${fmtVol(data.liquidity || 0)}</div></div>
+                    <div class="field"><div class="label">End Date</div><div class="value">${data.end_date || '?'}</div></div>
+                    <div class="actions">
+                        <button class="${isWatched ? 'btn-unwatch' : 'btn-watch'}" onclick="toggleWatch('${slug}')">${isWatched ? '✕ Unwatch' : '+ Watch'}</button>
+                    </div>
+
+                    <div class="chart">
+                        <div class="label" style="margin-bottom:8px;">Price Changes</div>
+                        ${renderChart(pc)}
+                    </div>
+
+                    <div class="vibe"><div class="loading">Loading vibe check...</div></div>
+
+                    <div class="field" style="margin-top:16px;">
+                        <div class="label">Description</div>
+                        <div class="value" style="font-size:0.8rem;color:#94a3b8;max-height:120px;overflow-y:auto;">${(data.description || '').substring(0, 500)}</div>
+                    </div>
                 `;
+                // Fetch vibe
+                fetch('/api/vibe/' + encodeURIComponent(slug))
+                    .then(r => r.json())
+                    .then(vibe => {
+                        const emoji = {bullish:'🟢', bearish:'🔴', neutral:'🟡'}[vibe.sentiment] || '❓';
+                        const el = content.querySelector('.vibe');
+                        if (el) el.innerHTML = `
+                            <div class="label">Vibe Check</div>
+                            <div class="value">${emoji} <strong>${(vibe.sentiment||'?').toUpperCase()}</strong></div>
+                            <div class="value" style="margin-top:6px;font-size:0.85rem;">${vibe.summary||''}</div>
+                        `;
+                    })
+                    .catch(() => {
+                        const el = content.querySelector('.vibe');
+                        if (el) el.innerHTML = '<div class="value" style="color:#94a3b8">Vibe check unavailable (set MOONSHOT_API_KEY)</div>';
+                    });
             })
-            .catch(() => {
-                content.querySelector('.vibe').innerHTML = '<div class="value" style="color:#ef4444">Vibe check unavailable</div>';
+            .catch(() => { content.innerHTML = '<p style="color:#ef4444">Failed to load market details.</p>'; });
+    }
+
+    function renderChart(pc) {
+        const periods = [['1h', pc['1h']], ['1d', pc['1d']], ['1w', pc['1w']], ['1m', pc['1m']], ['1y', pc['1y']]];
+        const maxAbs = Math.max(0.01, ...periods.map(([,v]) => Math.abs(v || 0)));
+        return periods.map(([label, val]) => {
+            const v = val || 0;
+            const pct = Math.min(Math.abs(v) / maxAbs * 50, 50);
+            const cls = v >= 0 ? 'pos' : 'neg';
+            return `<div class="bar-row">
+                <span class="bar-label">${label}</span>
+                <div class="bar-track">
+                    <div class="bar-center"></div>
+                    <div class="bar-fill ${cls}" style="width:${pct}%">${fmtPct(v)}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function closeDetail() { document.getElementById('detail').classList.remove('open'); }
+
+    // ===== Watch list =====
+    function toggleWatch(slug) {
+        const isWatched = watchedSlugs.has(slug);
+        const method = isWatched ? 'DELETE' : 'POST';
+        fetch('/api/watch/' + encodeURIComponent(slug), { method })
+            .then(r => r.json())
+            .then(data => {
+                watchedSlugs = new Set(data.watched_markets);
+                showDetail(slug); // refresh detail panel
             });
     }
 
-    function closeDetail() {
-        document.getElementById('detail').classList.remove('open');
+    function loadWatchlist() {
+        const content = document.getElementById('watchlist-content');
+        content.innerHTML = '<p style="color:#94a3b8">Loading...</p>';
+        fetch('/api/watchlist')
+            .then(r => r.json())
+            .then(data => {
+                watchedSlugs = new Set(data.watched_markets.map(m => m.slug));
+                const markets = data.watched_markets;
+                if (!markets.length) {
+                    content.innerHTML = '<div class="empty">No watched markets.<br>Click a market tile and press "+ Watch" to add one.</div>';
+                    return;
+                }
+                content.innerHTML = markets.map(m => `
+                    <div class="watch-item" onclick="showDetail('${m.slug}')">
+                        <div class="info">
+                            <div class="name">${m.question || m.slug}</div>
+                            <div class="meta">${m.price != null ? m.price.toFixed(3) : '?'} · ${fmtVol(m.volume_24h || 0)} · ${fmtPct(m.one_day_change || 0)}</div>
+                        </div>
+                        <button class="remove" onclick="event.stopPropagation(); removeWatch('${m.slug}')">✕</button>
+                    </div>
+                `).join('');
+            })
+            .catch(() => { content.innerHTML = '<div class="empty" style="color:#ef4444">Failed to load watch list.</div>'; });
     }
 
-    // --- Search ---
+    function removeWatch(slug) {
+        fetch('/api/watch/' + encodeURIComponent(slug), { method: 'DELETE' })
+            .then(r => r.json())
+            .then(() => { watchedSlugs.delete(slug); loadWatchlist(); });
+    }
+
+    // ===== Portfolio =====
+    function loadPortfolio() {
+        const content = document.getElementById('portfolio-content');
+        content.innerHTML = '<p style="color:#94a3b8">Loading...</p>';
+        fetch('/api/portfolio')
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    content.innerHTML = `<div class="empty">${data.error}</div>`;
+                    return;
+                }
+                let html = `<div class="field"><div class="label">Wallet</div><div class="value" style="font-size:0.8rem;word-break:break-all;">${data.wallet}</div></div>`;
+                html += `<div class="field"><div class="label">Value</div><div class="value">${JSON.stringify(data.value)}</div></div>`;
+                const positions = data.positions;
+                if (Array.isArray(positions) && positions.length) {
+                    const keys = Object.keys(positions[0]);
+                    html += `<table class="data-table"><tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
+                    html += positions.map(p => `<tr>${keys.map(k => `<td>${p[k] ?? ''}</td>`).join('')}</tr>`).join('');
+                    html += '</table>';
+                } else {
+                    html += '<div class="empty">No positions found.</div>';
+                }
+                content.innerHTML = html;
+            })
+            .catch(() => { content.innerHTML = '<div class="empty" style="color:#ef4444">Failed to load portfolio.</div>'; });
+    }
+
+    // ===== Alerts =====
+    function loadAlerts() {
+        const content = document.getElementById('alerts-content');
+        content.innerHTML = '<p style="color:#94a3b8">Loading...</p>';
+        fetch('/api/alerts')
+            .then(r => r.json())
+            .then(data => {
+                const alerts = (data.alerts || []).slice().reverse();
+                if (!alerts.length) {
+                    content.innerHTML = '<div class="empty">No alerts triggered yet.<br>Use <code>polypulse watch &lt;slug&gt;</code> and run the alert loop to generate alerts.</div>';
+                    return;
+                }
+                content.innerHTML = alerts.map(a => {
+                    const dir = a.new_price > a.old_price ? 'up' : 'down';
+                    const emoji = dir === 'up' ? '📈' : '📉';
+                    const time = new Date(a.timestamp).toLocaleString();
+                    return `<div class="alert-item" onclick="showDetail('${a.slug}')">
+                        <div class="time">${time}</div>
+                        <div>${emoji} <strong>${a.slug}</strong></div>
+                        <div class="move ${dir}">${a.old_price.toFixed(3)} → ${a.new_price.toFixed(3)} (${a.change_pct >= 0 ? '+' : ''}${a.change_pct.toFixed(1)}%)</div>
+                    </div>`;
+                }).join('');
+            })
+            .catch(() => { content.innerHTML = '<div class="empty" style="color:#ef4444">Failed to load alerts.</div>'; });
+    }
+
+    // ===== Search =====
     function doSearch() {
         const q = document.getElementById('search-input').value.trim();
         if (!q) return;
+        switchTab('heatmap');
         const container = document.getElementById('search-results');
         const treemap = document.getElementById('treemap');
         container.innerHTML = '<p style="color:#94a3b8">Searching...</p>';
-        container.classList.add('open');
+        container.style.display = 'block';
         treemap.style.display = 'none';
 
         fetch('/api/search?q=' + encodeURIComponent(q))
@@ -233,11 +457,11 @@
             .then(data => {
                 const markets = data.markets || [];
                 if (!markets.length) {
-                    container.innerHTML = '<span class="back" onclick="backToTreemap()">← Back</span><p>No results.</p>';
+                    container.innerHTML = '<span class="back-link" onclick="backToTreemap()">← Back</span><p>No results.</p>';
                     return;
                 }
                 let rows = markets.map(m => `
-                    <tr style="cursor:pointer" onclick='showDetail(${JSON.stringify(m).replace(/'/g, "&#39;")})'>
+                    <tr style="cursor:pointer" onclick="showDetail('${m.slug}')">
                         <td>${m.slug}</td>
                         <td>${(m.question || '').substring(0, 60)}</td>
                         <td>${m.outcome_prices && m.outcome_prices[0] != null ? m.outcome_prices[0].toFixed(3) : '?'}</td>
@@ -245,23 +469,23 @@
                     </tr>
                 `).join('');
                 container.innerHTML = `
-                    <span class="back" onclick="backToTreemap()">← Back to heatmap</span>
-                    <table><tr><th>Slug</th><th>Question</th><th>Price</th><th>24h Vol</th></tr>${rows}</table>
+                    <span class="back-link" onclick="backToTreemap()">← Back to heatmap</span>
+                    <table class="data-table"><tr><th>Slug</th><th>Question</th><th>Price</th><th>24h Vol</th></tr>${rows}</table>
                 `;
             })
             .catch(() => {
-                container.innerHTML = '<span class="back" onclick="backToTreemap()">← Back</span><p style="color:#ef4444">Search failed.</p>';
+                container.innerHTML = '<span class="back-link" onclick="backToTreemap()">← Back</span><p style="color:#ef4444">Search failed.</p>';
             });
     }
 
     document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
     function backToTreemap() {
-        document.getElementById('search-results').classList.remove('open');
+        document.getElementById('search-results').style.display = 'none';
         document.getElementById('treemap').style.display = 'block';
     }
 
-    // --- Fetch and refresh ---
+    // ===== Refresh =====
     function refresh() {
         document.getElementById('status').textContent = 'Refreshing...';
         fetch('/api/markets')
@@ -276,11 +500,15 @@
             .catch(err => {
                 document.getElementById('status').textContent = 'Error: ' + err.message;
             });
+        // Also refresh watched slugs
+        fetch('/api/watchlist').then(r => r.json()).then(data => {
+            watchedSlugs = new Set(data.watched_markets.map(m => m.slug));
+        }).catch(() => {});
     }
 
-    // --- Init ---
+    // ===== Init =====
     refresh();
-    refreshTimer = setInterval(refresh, 30000);
+    setInterval(refresh, 30000);
     window.addEventListener('resize', () => { if (marketsData.length) renderTreemap(marketsData); });
     </script>
 </body>

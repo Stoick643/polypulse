@@ -1,10 +1,16 @@
-"""Smart alerts — background price monitoring with notifications."""
+"""Smart alerts — background price monitoring with notifications and logging."""
 
+import json
+import os
 import sys
 import time
-from typing import Callable
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable
 
 from polypulse.polymarket import fetch_market, Market
+
+ALERTS_LOG_PATH = Path(os.environ.get("POLYPULSE_ALERTS_LOG", "alerts_log.json"))
 
 
 def _notify(title: str, message: str) -> None:
@@ -19,6 +25,33 @@ def _notify(title: str, message: str) -> None:
         )
     except Exception:
         print(f"[ALERT] {title}: {message}", file=sys.stderr)
+
+
+def _log_alert(slug: str, old_price: float, new_price: float, change_pct: float) -> None:
+    """Append an alert entry to the persistent log file."""
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "slug": slug,
+        "old_price": round(old_price, 4),
+        "new_price": round(new_price, 4),
+        "change_pct": round(change_pct, 2),
+    }
+    log = load_alerts_log()
+    log.append(entry)
+    # Keep last 100 entries
+    log = log[-100:]
+    ALERTS_LOG_PATH.write_text(json.dumps(log, indent=2) + "\n")
+
+
+def load_alerts_log(path: Path | None = None) -> list[dict[str, Any]]:
+    """Load the alerts log from disk."""
+    p = path or ALERTS_LOG_PATH
+    if p.exists():
+        try:
+            return json.loads(p.read_text())
+        except (json.JSONDecodeError, OSError):
+            return []
+    return []
 
 
 # In-memory price snapshots: slug -> (timestamp, price)
@@ -70,6 +103,9 @@ def check_alert(
     change_pct = abs((current_price - old_price) / old_price) * 100
 
     if change_pct >= threshold_pct:
+        # Log to persistent file
+        _log_alert(slug, old_price, current_price, change_pct)
+
         if callback:
             callback(slug, old_price, current_price, change_pct)
         else:

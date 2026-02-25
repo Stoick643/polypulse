@@ -6,9 +6,11 @@ from unittest.mock import patch, MagicMock, call
 import pytest
 
 from polypulse.alerts import (
+    ALERTS_LOG_PATH,
     check_alert,
     clear_snapshots,
     get_snapshot,
+    load_alerts_log,
     record_snapshot,
     run_alert_loop,
 )
@@ -63,6 +65,28 @@ class TestCheckAlert:
         snap = get_snapshot("m1")
         assert snap is not None
         assert snap[1] == 0.60
+
+
+class TestAlertsLog:
+    def test_alert_logs_to_file(self, tmp_path):
+        import polypulse.alerts as alerts_mod
+        log_path = tmp_path / "alerts.json"
+        original = alerts_mod.ALERTS_LOG_PATH
+        alerts_mod.ALERTS_LOG_PATH = log_path
+        try:
+            record_snapshot("m1", 0.50)
+            check_alert("m1", 0.60, threshold_pct=5, callback=MagicMock())
+            log = load_alerts_log(log_path)
+            assert len(log) == 1
+            assert log[0]["slug"] == "m1"
+            assert log[0]["old_price"] == 0.5
+            assert log[0]["new_price"] == 0.6
+        finally:
+            alerts_mod.ALERTS_LOG_PATH = original
+
+    def test_load_empty_log(self, tmp_path):
+        log = load_alerts_log(tmp_path / "nonexistent.json")
+        assert log == []
 
 
 class TestRunAlertLoop:

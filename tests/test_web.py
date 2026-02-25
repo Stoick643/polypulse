@@ -84,6 +84,89 @@ class TestVibeApi:
         assert resp.status_code == 500
 
 
+class TestWatchlistApi:
+    @patch("polypulse.web.load_config")
+    @patch("polypulse.web.fetch_market")
+    def test_watchlist_returns_markets(self, mock_fetch, mock_config, client):
+        from polypulse.polymarket import Market
+        mock_config.return_value = {"watched_markets": ["m1"]}
+        mock_fetch.return_value = Market(
+            id="1", slug="m1", question="Q?", description="",
+            outcomes=["Yes", "No"], outcome_prices=[0.5, 0.5],
+            volume=1000, volume_24h=500, liquidity=100,
+            active=True, end_date="2025-12-31", one_day_price_change=0.02)
+        resp = client.get("/api/watchlist")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert len(data["watched_markets"]) == 1
+
+    @patch("polypulse.web.add_watch")
+    def test_watch_adds_slug(self, mock_add, client):
+        mock_add.return_value = {"watched_markets": ["new-slug"]}
+        resp = client.post("/api/watch/new-slug")
+        assert resp.status_code == 200
+        mock_add.assert_called_once_with("new-slug")
+
+    @patch("polypulse.web.remove_watch")
+    def test_unwatch_removes_slug(self, mock_rm, client):
+        mock_rm.return_value = {"watched_markets": []}
+        resp = client.delete("/api/watch/old-slug")
+        assert resp.status_code == 200
+        mock_rm.assert_called_once_with("old-slug")
+
+
+class TestPortfolioApi:
+    @patch("polypulse.web.load_config")
+    def test_no_wallet_returns_400(self, mock_config, client):
+        mock_config.return_value = {"wallet_address": ""}
+        resp = client.get("/api/portfolio")
+        assert resp.status_code == 400
+
+    @patch("polypulse.web.run_polymarket")
+    @patch("polypulse.web.load_config")
+    def test_portfolio_returns_data(self, mock_config, mock_run, client):
+        mock_config.return_value = {"wallet_address": "0xABC"}
+        mock_run.side_effect = [
+            json.dumps({"total_value": "1234.56"}),
+            json.dumps([{"market": "m1", "pnl": "5.0"}]),
+        ]
+        resp = client.get("/api/portfolio")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["wallet"] == "0xABC"
+
+
+class TestAlertsApi:
+    @patch("polypulse.web.load_alerts_log")
+    def test_alerts_returns_log(self, mock_log, client):
+        mock_log.return_value = [
+            {"timestamp": "2026-02-25T22:00:00Z", "slug": "m1", "old_price": 0.5, "new_price": 0.6, "change_pct": 20.0}
+        ]
+        resp = client.get("/api/alerts")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert len(data["alerts"]) == 1
+
+
+class TestDetailApi:
+    @patch("polypulse.web.run_polymarket")
+    def test_detail_returns_price_changes(self, mock_run, client):
+        mock_run.return_value = json.dumps({
+            "slug": "m1", "question": "Q?", "description": "Desc",
+            "outcomePrices": '["0.65","0.35"]',
+            "volume24hr": "5000", "liquidityNum": "1000",
+            "endDateIso": "2025-12-31", "lastTradePrice": "0.64",
+            "oneHourPriceChange": "0.01", "oneDayPriceChange": "-0.02",
+            "oneWeekPriceChange": "0.05", "oneMonthPriceChange": "-0.1",
+            "oneYearPriceChange": "0.2",
+        })
+        resp = client.get("/api/detail/m1")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["price_changes"]["1h"] == 0.01
+        assert data["price_changes"]["1y"] == 0.2
+
+
 class TestWebCli:
     def test_web_command_exists(self):
         from click.testing import CliRunner

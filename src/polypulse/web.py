@@ -9,8 +9,9 @@ from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from polypulse.config import load_config
-from polypulse.polymarket import fetch_active_markets, filter_markets, dedupe_by_event
+from polypulse.alerts import load_alerts_log
+from polypulse.config import add_watch, load_config, remove_watch
+from polypulse.polymarket import fetch_active_markets, fetch_market, filter_markets, dedupe_by_event, run_polymarket
 from polypulse.scaling import pick_scale
 
 
@@ -108,6 +109,86 @@ def create_app() -> Flask:
         try:
             data = _run_polypulse("vibe", slug)
             return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # --- Watch list ---
+
+    @app.route("/api/watchlist")
+    def api_watchlist():
+        config = load_config()
+        slugs = config.get("watched_markets", [])
+        markets = []
+        for slug in slugs:
+            try:
+                m = fetch_market(slug)
+                markets.append({
+                    "slug": m.slug,
+                    "question": m.question,
+                    "price": m.outcome_prices[0] if m.outcome_prices else None,
+                    "volume_24h": m.volume_24h,
+                    "one_day_change": m.one_day_price_change or 0,
+                })
+            except Exception:
+                markets.append({"slug": slug, "question": slug, "price": None,
+                                "volume_24h": 0, "one_day_change": 0, "error": True})
+        return jsonify({"watched_markets": markets})
+
+    @app.route("/api/watch/<slug>", methods=["POST"])
+    def api_watch(slug):
+        config = add_watch(slug)
+        return jsonify({"watched_markets": config["watched_markets"]})
+
+    @app.route("/api/watch/<slug>", methods=["DELETE"])
+    def api_unwatch(slug):
+        config = remove_watch(slug)
+        return jsonify({"watched_markets": config["watched_markets"]})
+
+    # --- Portfolio ---
+
+    @app.route("/api/portfolio")
+    def api_portfolio():
+        config = load_config()
+        wallet = config.get("wallet_address", "")
+        if not wallet:
+            return jsonify({"error": "No wallet_address in config.json"}), 400
+        try:
+            value_data = json.loads(run_polymarket("data", "value", wallet))
+            positions_data = json.loads(run_polymarket("data", "positions", wallet))
+            return jsonify({"wallet": wallet, "value": value_data, "positions": positions_data})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # --- Alerts log ---
+
+    @app.route("/api/alerts")
+    def api_alerts():
+        log = load_alerts_log()
+        return jsonify({"alerts": log})
+
+    # --- Market detail with price changes for charts ---
+
+    @app.route("/api/detail/<slug>")
+    def api_detail(slug):
+        try:
+            raw = json.loads(run_polymarket("markets", "get", slug))
+            return jsonify({
+                "slug": raw.get("slug"),
+                "question": raw.get("question"),
+                "description": raw.get("description", ""),
+                "price": float(json.loads(raw.get("outcomePrices", "[0]"))[0]) if raw.get("outcomePrices") else None,
+                "volume_24h": float(raw.get("volume24hr", 0) or 0),
+                "liquidity": float(raw.get("liquidityNum", 0) or 0),
+                "end_date": raw.get("endDateIso", ""),
+                "last_trade_price": float(raw.get("lastTradePrice", 0) or 0),
+                "price_changes": {
+                    "1h": float(raw.get("oneHourPriceChange", 0) or 0),
+                    "1d": float(raw.get("oneDayPriceChange", 0) or 0),
+                    "1w": float(raw.get("oneWeekPriceChange", 0) or 0),
+                    "1m": float(raw.get("oneMonthPriceChange", 0) or 0),
+                    "1y": float(raw.get("oneYearPriceChange", 0) or 0),
+                },
+            })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
