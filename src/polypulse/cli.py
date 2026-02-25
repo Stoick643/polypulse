@@ -7,6 +7,8 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+import os
+
 from polypulse.config import add_watch, load_config, remove_watch
 from polypulse.polymarket import (
     dedupe_by_event,
@@ -282,3 +284,52 @@ def trade(auto, as_json):
                 f"${s['volume_24h']:,.0f}",
             )
         out.print(table)
+
+
+# ---------------------------------------------------------------------------
+# digest
+# ---------------------------------------------------------------------------
+
+@cli.command()
+@click.option("--preview", is_flag=True, help="Print HTML to stdout, don't send.")
+@click.option("--json", "as_json", is_flag=True, help="Machine-readable JSON output.")
+def digest(preview, as_json):
+    """Generate and send the daily digest email."""
+    from polypulse.digest import fetch_digest_data, render_html, send_email
+
+    config = load_config()
+
+    try:
+        data = fetch_digest_data()
+    except Exception as e:
+        console.print(f"[red]Error gathering digest data:[/red] {e}", highlight=False)
+        sys.exit(1)
+
+    if as_json:
+        _output_json(data)
+        return
+
+    html = render_html(data)
+
+    if preview:
+        click.echo(html)
+        return
+
+    # Send email
+    smtp_host = config.get("smtp_host", os.environ.get("POLYPULSE_SMTP_HOST", "smtp.gmail.com"))
+    smtp_port = config.get("smtp_port", int(os.environ.get("POLYPULSE_SMTP_PORT", "587")))
+    smtp_user = config.get("smtp_user", os.environ.get("POLYPULSE_SMTP_USER", ""))
+    smtp_password = config.get("smtp_password", os.environ.get("POLYPULSE_SMTP_PASSWORD", ""))
+    recipient = config.get("digest_recipient", os.environ.get("POLYPULSE_DIGEST_RECIPIENT", ""))
+
+    if not recipient:
+        console.print("[red]Error:[/red] No digest_recipient in config.json or POLYPULSE_DIGEST_RECIPIENT env var.", highlight=False)
+        sys.exit(2)
+
+    try:
+        send_email(html, recipient, smtp_host=smtp_host, smtp_port=smtp_port,
+                   smtp_user=smtp_user, smtp_password=smtp_password)
+        console.print(f"[green]✓[/green] Digest sent to [bold]{recipient}[/bold]")
+    except Exception as e:
+        console.print(f"[red]Error sending email:[/red] {e}", highlight=False)
+        sys.exit(1)

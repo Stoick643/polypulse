@@ -14,5 +14,10 @@
     "btc",
     "eth",
     "sol"
-  ]
+  ],
+  "digest_recipient": "",
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_user": "",
+  "smtp_password": ""
 }
