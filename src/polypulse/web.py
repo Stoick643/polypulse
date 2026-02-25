@@ -12,8 +12,9 @@ from flask import Flask, jsonify, request, send_from_directory
 
 def _run_polypulse(*args: str) -> dict | list:
     """Run a polypulse CLI command with --json and return parsed output."""
+    polypulse_bin = Path(sys.executable).parent / "polypulse"
     env = {**os.environ, "PATH": str(Path(sys.executable).parent) + ":" + os.environ.get("PATH", "")}
-    cmd = [sys.executable, "-m", "polypulse.cli", *args, "--json"]
+    cmd = [str(polypulse_bin), *args, "--json"]
     result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or f"polypulse {' '.join(args)} failed")
