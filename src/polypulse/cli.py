@@ -287,6 +287,19 @@ def trade(auto, as_json):
 
 
 # ---------------------------------------------------------------------------
+# web
+# ---------------------------------------------------------------------------
+
+@cli.command()
+@click.option("--port", default=8080, help="Port to run on.")
+@click.option("--no-open", is_flag=True, help="Don't open browser automatically.")
+def web(port, no_open):
+    """Launch the web dashboard in your browser."""
+    from polypulse.web import run_web
+    run_web(port=port, open_browser=not no_open)
+
+
+# ---------------------------------------------------------------------------
 # digest
 # ---------------------------------------------------------------------------
 
