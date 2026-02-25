@@ -1,0 +1,18 @@
+{
+  "watched_markets": [],
+  "wallet_address": "",
+  "alert_threshold_pct": 5,
+  "alert_interval_seconds": 3600,
+  "refresh_interval_seconds": 30,
+  "top_n_markets": 10,
+  "filter_patterns": [
+    "updown",
+    "up-or-down",
+    "trump",
+    "bitcoin",
+    "ethereum",
+    "btc",
+    "eth",
+    "sol"
+  ]
+}
