@@ -12,5 +12,19 @@
     "old_price": 0.5,
     "new_price": 0.6,
     "change_pct": 20.0
+  },
+  {
+    "timestamp": "2026-02-26T21:01:10.078610+00:00",
+    "slug": "m1",
+    "old_price": 0.5,
+    "new_price": 0.6,
+    "change_pct": 20.0
+  },
+  {
+    "timestamp": "2026-02-26T21:01:10.083102+00:00",
+    "slug": "m1",
+    "old_price": 0.5,
+    "new_price": 0.6,
+    "change_pct": 20.0
   }
 ]

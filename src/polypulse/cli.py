@@ -287,6 +287,18 @@ def trade(auto, as_json):
 
 
 # ---------------------------------------------------------------------------
+# bot (WhatsApp)
+# ---------------------------------------------------------------------------
+
+@cli.command()
+@click.option("--port", default=5000, help="Port to run webhook server on.")
+def bot(port):
+    """Launch the WhatsApp bot (Twilio webhook server)."""
+    from polypulse.whatsapp import run_bot
+    run_bot(port=port)
+
+
+# ---------------------------------------------------------------------------
 # web
 # ---------------------------------------------------------------------------
 

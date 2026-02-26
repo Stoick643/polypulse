@@ -16,6 +16,8 @@ dependencies = [
     "requests>=2.31",
     "plyer>=2.1",
     "flask>=3.0",
+    "twilio>=9.0",
+    "python-dotenv>=1.0",
 ]
 
 [project.scripts]
